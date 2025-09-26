@@ -10,8 +10,11 @@ from generation_utils import generate
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--src_text", type=str, default="Only France and [ Britain ] backed Fischler 's proposal .")
-    parser.add_argument("--template", type=str, default="Faransi ni Angiletɛri dɔrɔn de ye Fischler ka laɲini dɛmɛ .")
+    parser.add_argument("-s", "--src_text", type=str, default="Only France and [ Britain ] backed Fischler 's proposal .")
+    parser.add_argument("-t", "--template", type=str, default="Faransi ni Angiletɛri dɔrɔn de ye Fischler ka laɲini dɛmɛ .")
+    parser.add_argument("-n", "--n_spans", type=int, default=1)
+    parser.add_argument("--src_lang", type=str, default="eng_Latn")
+    parser.add_argument("--tgt_lang", type=str, default="deu_Latn")
     parser.add_argument("--model_name_or_path", type=str, required=True)
     parser.add_argument("--tokenizer_path", type=str, default=None)
     args = parser.parse_args()
@@ -20,10 +23,10 @@ if __name__ == '__main__':
 
     src_text = args.src_text
     template_text = args.template
-    tgt_lang = "bam_Latn"
+    tgt_lang = args.tgt_lang # "bam_Latn"
 
     model = AutoModelForSeq2SeqLM.from_pretrained(args.model_name_or_path)
-    tokenizer = AutoTokenizer.from_pretrained(args.tokenizer_path)
+    tokenizer = AutoTokenizer.from_pretrained(args.tokenizer_path, src_lang=args.src_lang)
     tokenized_input = tokenizer(src_text, return_tensors="pt")
     model.to('cuda')
     input_ids = tokenized_input.input_ids
@@ -35,7 +38,7 @@ if __name__ == '__main__':
                    [tokenizer.eos_token_id]
 
     template_ids = torch.LongTensor(template_ids)
-    bracket_stack = [']', '[']  # order to insert marker: '[' -> ']', can be extended to multiple marker pairs
+    bracket_stack = [']', '['] * args.n_spans  # order to insert marker: '[' -> ']', can be extended to multiple marker pairs
     template_length = template_ids.shape[-1] - 3
     print("Input:", src_text)
     print("template:", template_text)
