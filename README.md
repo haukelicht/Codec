@@ -1,5 +1,7 @@
 # Constrained Decoding for Cross-lingual Label Projection
 
+source: https://github.com/duonglm38/codec
+
 This repo contains the code for our ICLR 2024 paper: <a href="https://arxiv.org/abs/2402.03131"> Constrained Decoding for Cross-lingual Label Projection.</a>
 
 ## Installation
