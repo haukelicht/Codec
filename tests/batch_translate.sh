@@ -22,8 +22,4 @@ conda run -n codec --live-stream \
         --output_label_key source_label \
         --model_name_or_path ychenNLP/nllb-200-distilled-1.3B-easyproject \
         --tokenizer_path     facebook/nllb-200-distilled-1.3B \
-        --batch_size 32 \
-        --max_joint_spans 2 \
-        --search_mode 1 --future_steps 1 \
         --output_path "output.jsonl"
-        # --num_beams   10 \

@@ -337,7 +337,6 @@ def process_row(
     tgt_lang: str,
     translate_kwargs: dict,
     decode_jointly: bool = True,
-    max_joint_spans: int = 3,
 ) -> list[list]:
     """Project *labels* from *text* onto *template* using Codec.
 
@@ -353,13 +352,11 @@ def process_row(
                            ``search_mode``, ``batch_size``).
         decode_jointly:    If ``True``, bracket *all* spans in the source and
                            call :meth:`~src.codec.Codec.translate` **once**
-                           with ``n_spans=k``, **provided** the row has at most
-                           *max_joint_spans* spans.  Rows with more spans
-                           automatically fall back to one-by-one decoding.
-                           If ``False``, always use one call per span.
-        max_joint_spans:   Maximum number of spans to decode jointly when
-                           *decode_jointly* is ``True``.  Rows with more spans
-                           fall back to iterative decoding.  Default: 3.
+                           with ``n_spans=k``.  Faster for sentences with many
+                           spans, but the search space grows as O(L^{2k}).
+                           If ``False`` (default), one call per span
+                           (``n_spans=1``) is made, which is more robust for
+                           large k.
 
     Returns:
         Projected annotations as a list of ``[start, end, type]`` lists in
@@ -369,8 +366,7 @@ def process_row(
     if not labels:
         return []
 
-    use_jointly = decode_jointly and len(labels) <= max_joint_spans
-    if use_jointly:
+    if decode_jointly:
         # --- Single call: all k spans bracketed at once --------------------
         src_bracketed, sorted_labels = labels_to_bracketed(text, labels)
         entity_types = [lbl[2] for lbl in sorted_labels]
@@ -387,7 +383,7 @@ def process_row(
             return []
         return all_bracketed_to_label_offsets(results[0]["text"], entity_types)
 
-    else:  # iterative: one call per span
+    else:
         # --- One call per span (original behaviour) ------------------------
         sorted_labels = sorted(labels, key=lambda x: x[0])
         target_labels: list[list] = []
@@ -465,7 +461,6 @@ def main(args: argparse.Namespace) -> None:
         search_mode=args.search_mode,
         batch_size=args.batch_size,
         future_steps=args.future_steps,
-        num_beams=args.num_beams,
         n_best=1,  # we only need the top-1 result
     )
 
@@ -497,7 +492,6 @@ def main(args: argparse.Namespace) -> None:
                     tgt_lang=get_tgt_lang(record),
                     translate_kwargs=translate_kwargs,
                     decode_jointly=not args.disable_joint_decoding,
-                    max_joint_spans=args.max_joint_spans,
                 )
             else:
                 target_labels = []
@@ -583,14 +577,9 @@ def _build_parser() -> argparse.ArgumentParser:
 
     # --- Search ------------------------------------------------------------
     search = p.add_argument_group("Search")
-    search.add_argument("--search_mode", choices=[0, 1, 2], type=int, default=2,
-                        help="0 = fast heuristic (unbounded, can hang for k>1 spans), "
-                             "1 = slow heuristic (lower GPU memory), "
-                             "2 = constrained beam search (bounded by --num_beams, "
-                             "safe for joint decoding with k>1 spans).")
-    search.add_argument("--num_beams", type=int, default=4,
-                        help="Beam width for constrained beam search (search_mode=2). "
-                             "Ignored for search_mode 0/1.")
+    search.add_argument("--search_mode", choices=[0, 1, 2], type=int, default=0,
+                        help="0 = fast heuristic, 1 = slow heuristic, "
+                             "2 = constrained beam search.")
     search.add_argument("--batch_size", type=int, default=16,
                         help="Number of search branches expanded in parallel.")
     search.add_argument("--future_steps", type=int, default=-1,
@@ -601,10 +590,6 @@ def _build_parser() -> argparse.ArgumentParser:
                              "of passing all k spans to codec.translate at once.  "
                              "Safer for sentences with many spans (avoids O(L^{2k}) "
                              "search explosion), but requires k model calls per sentence.")
-    search.add_argument("--max_joint_spans", type=int, default=3,
-                        help="When joint decoding is enabled, rows with more than this "
-                             "many spans fall back to one-by-one decoding. Default: 3 "
-                             "(so sentences with ≥4 spans are decoded iteratively).")
 
     return p
 
