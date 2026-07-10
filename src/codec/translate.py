@@ -461,7 +461,9 @@ def main(args: argparse.Namespace) -> None:
         search_mode=args.search_mode,
         batch_size=args.batch_size,
         future_steps=args.future_steps,
+        num_beams=args.num_beams,
         n_best=1,  # we only need the top-1 result
+        use_whitespace_positions_only=True,  # ignore subword offsets for doccano
     )
 
     # Count lines for the progress bar without loading everything into memory.
@@ -582,6 +584,8 @@ def _build_parser() -> argparse.ArgumentParser:
                              "2 = constrained beam search.")
     search.add_argument("--batch_size", type=int, default=16,
                         help="Number of search branches expanded in parallel.")
+    search.add_argument("--num_beams", type=int, default=4,
+                        help="Beam size for constrained beam search (search_mode=2).")
     search.add_argument("--future_steps", type=int, default=-1,
                         help="Look-ahead horizon for the heuristic upper bound.  "
                              "-1 uses the full remaining template.")

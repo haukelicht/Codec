@@ -12,14 +12,19 @@ TRANSLATE="$REPO_ROOT/src/codec/translate.py"
 conda run -n codec --live-stream \
     env PYTHONPATH="$REPO_ROOT" \
     python "$TRANSLATE" \
-        --input_path  "test.jsonl" \
-        --text_key     text \
-        --label_key    label \
-        --src_lang     en \
-        --lang_col     lang \
-        --lang_format  iso2 \
-        --template_key source_text \
-        --output_label_key source_label \
+        --input_path        "test2.jsonl" \
+        --text_key           text \
+        --label_key          label \
+        --src_lang           en \
+        --lang_col           lang \
+        --lang_format        iso2 \
+        --template_key       source_text \
+        --output_label_key   source_label \
         --model_name_or_path ychenNLP/nllb-200-distilled-1.3B-easyproject \
         --tokenizer_path     facebook/nllb-200-distilled-1.3B \
-        --output_path "output.jsonl"
+        --search_mode 2 --num_beams 10 \
+        --batch_size 32 \
+        --disable_joint_decoding \
+        --output_path "output2.jsonl"
+
+echo "Done!"
