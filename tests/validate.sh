@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 REPO_ROOT="$(git -C "$(pwd)" rev-parse --show-toplevel)"
-TRANSLATE="$REPO_ROOT/src/codec/translate.py"
+VALIDATE="$REPO_ROOT/src/codec/validate.py"
 
 # test.jsonl layout:
 #   text        — English source sentence
@@ -11,23 +11,16 @@ TRANSLATE="$REPO_ROOT/src/codec/translate.py"
 
 MTMODEL="XIE2021/nllb-200-3.3B-easyproject" #"ychenNLP/nllb-200-distilled-1.3B-easyproject"
 TOKENIZER="facebook/nllb-200-distilled-600M" # see https://huggingface.co/XIE2021/nllb-200-3.3B-easyproject#code
+BSMODEL="xlm-roberta-large" # for BERTScore matching
 
 conda run -n codec --live-stream \
     env PYTHONPATH="$REPO_ROOT" \
-    python "$TRANSLATE" \
-        --input_path        "test2.jsonl" \
-        --text_key           text \
-        --label_key          label \
-        --src_lang           en \
-        --lang_col           lang \
-        --lang_format        iso2 \
-        --template_key       source_text \
-        --output_label_key   source_label \
+    python "$VALIDATE" \
+        --input_path         "output2.jsonl" \
+        --output_path        "validation.xlsx" \
         --model_name_or_path "$MTMODEL" \
         --tokenizer_path     "$TOKENIZER" \
-        --search_mode 2 --num_beams 10 \
-        --batch_size 32 \
-        --disable_joint_decoding \
-        --output_path "output2.jsonl"
+        --bertscore_model    "$BSMODEL" \
+        --verbose --log-level INFO
 
 echo "Done!"
